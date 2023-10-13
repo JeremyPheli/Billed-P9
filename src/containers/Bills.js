@@ -39,12 +39,10 @@ export default class {
 
   getBills = () => {
     if (this.store) {
-      console.log(this.store);
       return this.store
         .bills()
         .list()
         .then((snapshot) => {
-          console.log(snapshot);
           const bills = snapshot
             .sort((a, b) =>
               new Date(a.date) > new Date(b.date)
@@ -71,7 +69,6 @@ export default class {
                 };
               }
             });
-          console.log("length", bills.length);
           return bills;
         });
     }
