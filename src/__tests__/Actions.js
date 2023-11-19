@@ -26,5 +26,3 @@ describe("Given I am connected as an Employee", () => {
     });
   });
 });
-
-console.log("faire des test unitaires ");

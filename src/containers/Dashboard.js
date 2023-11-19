@@ -21,7 +21,6 @@ export const filteredBills = (data, status) => {
             bill.status === status &&
             ![...USERS_TEST, userEmail].includes(bill.email);
         }
-
         return selectCondition;
       })
     : [];
@@ -57,6 +56,7 @@ export const card = (bill) => {
 };
 
 export const cards = (bills) => {
+  console.log(bills);
   return bills && bills.length ? bills.map((bill) => card(bill)).join("") : "";
 };
 
@@ -95,7 +95,6 @@ export default class {
   };
 
   handleEditTicket(e, bill, bills) {
-    console.log(this.counterBill);
     if (this.counterBill === undefined) this.counterBill = 0;
     if (
       $(".dashboard-right-container div").has("#big-billed-icon").length == 0

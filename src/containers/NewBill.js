@@ -12,53 +12,43 @@ export default class NewBill {
     formNewBill.addEventListener("submit", this.handleSubmit);
     const file = this.document.querySelector(`input[data-testid="file"]`);
     file.addEventListener("change", this.handleChangeFile);
+    this.file = file;
     this.fileUrl = null;
     this.fileName = null;
     this.billId = null;
+    this.valid = false;
     new Logout({ document, localStorage, onNavigate });
   }
+
   handleChangeFile = (e) => {
     e.preventDefault();
-    const input = this.document.querySelector(`input[data-testid="file"]`);
-    const file = input.files[0];
+    let fileInput = this.file;
+    let file = fileInput.files[0];
     const filePath = e.target.value.split(/\\/g);
     const fileName = filePath[filePath.length - 1];
-    const formData = new FormData();
-    const email = JSON.parse(localStorage.getItem("user")).email;
-    const supportedFormats = ["image/jpeg", "image/jpg", "image/png"];
-    formData.append("file", file);
-    formData.append("email", email);
-    if (!supportedFormats.includes(file.type)) {
-      alert("Only jpeg, jpg or png format are suported.");
-      input.value = "";
-      return;
-    }
+    const acceptedTypes = ["image/jpg", "image/jpeg", "image/png"];
+    let isTypeValid = acceptedTypes.includes(file.type);
 
-    this.store
-      .bills()
-      .create({
-        data: formData,
-        headers: {
-          noContentType: true,
-        },
-      })
-      .then(({ fileUrl, key }) => {
-        console.log(fileUrl);
-        this.billId = key;
-        this.fileUrl = fileUrl;
-        this.fileName = fileName;
-      })
-      .catch((error) => console.error(error));
+    if (!isTypeValid) {
+      fileInput.value = null;
+      file = {};
+      this.billId = null;
+      this.fileUrl = null;
+      this.fileName = null;
+      alert(
+        "Le format du fichier n'est pas valide. Veuillez sélectionner un fichier au format jpg, jpeg ou png."
+      );
+      this.valid = false;
+    } else {
+      this.valid = true;
+      this.fileName = fileName;
+    }
   };
-  handleSubmit = (e) => {
+
+  handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(
-      'e.target.querySelector(`input[data-testid="datepicker"]`).value',
-      e.target.querySelector(`input[data-testid="datepicker"]`).value
-    );
-    const email = JSON.parse(localStorage.getItem("user")).email;
     const bill = {
-      email,
+      email: JSON.parse(localStorage.getItem("user")).email,
       type: e.target.querySelector(`select[data-testid="expense-type"]`).value,
       name: e.target.querySelector(`input[data-testid="expense-name"]`).value,
       amount: parseInt(
@@ -75,18 +65,39 @@ export default class NewBill {
       fileName: this.fileName,
       status: "pending",
     };
-    this.updateBill(bill);
-    this.onNavigate(ROUTES_PATH["Bills"]);
+
+    if (this.valid) {
+      await this.createBill(bill);
+      this.onNavigate(ROUTES_PATH["Bills"]);
+    } else {
+      alert("Veuillez soumettre le fichier avant de continuer.");
+    }
   };
 
   // not need to cover this function by tests
-  updateBill = (bill) => {
+  createBill = async (bill) => {
+    const formData = new FormData();
+    formData.append("file", this.file.files[0]);
+    const email = JSON.parse(localStorage.getItem("user")).email;
+    formData.append("email", email);
+
     if (this.store) {
       this.store
         .bills()
-        .update({ data: JSON.stringify(bill), selector: this.billId })
-        .then(() => {
-          this.onNavigate(ROUTES_PATH["Bills"]);
+        .create({
+          data: formData,
+          headers: {
+            noContentType: true,
+          },
+        })
+        .then(({ fileUrl, key }) => {
+          this.fileUrl = fileUrl;
+          this.billId = key;
+          this.store
+            .bills()
+            .update({ data: JSON.stringify(bill), selector: this.billId })
+            .then(() => this.onNavigate(ROUTES_PATH["Bills"]))
+            .catch((err) => console.error(err));
         })
         .catch((error) => console.error(error));
     }
